@@ -51,7 +51,7 @@ export const PigeonCard = ({ pigeon, index, onSelect }: PigeonCardProps) => {
   return (
     <motion.div
       ref={cardRef}
-      className="relative perspective-1000 cursor-pointer"
+      className="relative perspective-1000 cursor-pointer group"
       initial={{ opacity: 0, y: 50 }}
       whileInView={{ opacity: 1, y: 0 }}
       viewport={{ once: true, margin: "-50px" }}
@@ -62,7 +62,7 @@ export const PigeonCard = ({ pigeon, index, onSelect }: PigeonCardProps) => {
       onClick={() => onSelect(pigeon)}
     >
       <motion.div
-        className="relative rounded-2xl overflow-hidden gold-border"
+        className="relative rounded-2xl overflow-hidden gold-border group-hover:neon-border transition-shadow duration-500"
         style={{
           rotateX,
           rotateY,
@@ -82,6 +82,19 @@ export const PigeonCard = ({ pigeon, index, onSelect }: PigeonCardProps) => {
             ),
             opacity: isHovered ? 1 : 0,
           }}
+        />
+
+        {/* Electric border effect on hover */}
+        <motion.div
+          className="absolute inset-0 rounded-2xl pointer-events-none z-20"
+          initial={{ opacity: 0 }}
+          animate={{ 
+            opacity: isHovered ? 1 : 0,
+            boxShadow: isHovered 
+              ? "0 0 20px hsl(45 80% 55% / 0.4), inset 0 0 20px hsl(45 80% 55% / 0.1)"
+              : "none"
+          }}
+          transition={{ duration: 0.3 }}
         />
 
         {/* Image container */}
@@ -106,22 +119,31 @@ export const PigeonCard = ({ pigeon, index, onSelect }: PigeonCardProps) => {
             animate={{ opacity: isHovered ? 1 : 0 }}
           />
 
-          {/* Champion badge */}
+          {/* Scanline effect on hover */}
+          <motion.div
+            className="absolute inset-0 pointer-events-none"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: isHovered ? 0.3 : 0 }}
+          >
+            <div className="absolute inset-0 scanline" />
+          </motion.div>
+
+          {/* Champion badge with glow */}
           <motion.div
             className="absolute top-4 left-4"
             initial={{ x: -20, opacity: 0 }}
             animate={{ x: 0, opacity: 1 }}
             transition={{ delay: index * 0.1 + 0.3 }}
           >
-            <div className="flex items-center gap-2 px-3 py-1.5 glass-card rounded-full border border-primary/40">
-              <Trophy className="w-4 h-4 text-primary" />
+            <div className="flex items-center gap-2 px-3 py-1.5 glass-card rounded-full border border-primary/40 group-hover:neon-border transition-shadow duration-300">
+              <Trophy className="w-4 h-4 text-primary animate-electric" />
               <span className="text-xs font-semibold text-primary">Champion</span>
             </div>
           </motion.div>
 
           {/* Year badge */}
           <div className="absolute top-4 right-4">
-            <div className="flex items-center gap-1.5 px-3 py-1.5 glass-card rounded-full border border-border/30">
+            <div className="flex items-center gap-1.5 px-3 py-1.5 glass-card rounded-full border border-border/30 group-hover:border-primary/30 transition-colors">
               <Calendar className="w-3 h-3 text-muted-foreground" />
               <span className="text-xs text-muted-foreground">{pigeon.year}</span>
             </div>
@@ -130,15 +152,15 @@ export const PigeonCard = ({ pigeon, index, onSelect }: PigeonCardProps) => {
 
         {/* Content */}
         <div className="relative p-6 glass-card" style={{ transform: "translateZ(20px)" }}>
-          {/* Title */}
+          {/* Title with hover effect */}
           <motion.h3
-            className="font-display text-2xl font-bold text-foreground mb-1"
+            className="font-display text-2xl font-bold text-foreground mb-1 group-hover:gold-text transition-all duration-300"
             style={{ transform: "translateZ(30px)" }}
           >
             {pigeon.name}
           </motion.h3>
           
-          <p className="text-primary font-medium text-sm mb-4">{pigeon.title}</p>
+          <p className="text-primary font-medium text-sm mb-4 group-hover:animate-electric">{pigeon.title}</p>
 
           {/* Stats row */}
           <div className="flex items-center gap-4 text-sm text-muted-foreground mb-4">
@@ -147,17 +169,17 @@ export const PigeonCard = ({ pigeon, index, onSelect }: PigeonCardProps) => {
               <span>{pigeon.breed}</span>
             </div>
             <div className="flex items-center gap-1.5">
-              <Zap className="w-4 h-4 text-primary/60" />
+              <Zap className="w-4 h-4 text-primary/60 group-hover:animate-electric" />
               <span>{pigeon.records[0]}</span>
             </div>
           </div>
 
-          {/* Achievement tags */}
+          {/* Achievement tags with stagger animation */}
           <div className="flex flex-wrap gap-2">
             {pigeon.achievements.slice(0, 2).map((achievement, i) => (
               <motion.span
                 key={i}
-                className="px-3 py-1 text-xs rounded-full bg-primary/10 text-primary/80 border border-primary/20"
+                className="px-3 py-1 text-xs rounded-full bg-primary/10 text-primary/80 border border-primary/20 group-hover:border-primary/40 group-hover:bg-primary/20 transition-all duration-300"
                 initial={{ opacity: 0, scale: 0.8 }}
                 animate={{ opacity: 1, scale: 1 }}
                 transition={{ delay: index * 0.1 + 0.4 + i * 0.1 }}
@@ -167,13 +189,13 @@ export const PigeonCard = ({ pigeon, index, onSelect }: PigeonCardProps) => {
             ))}
           </div>
 
-          {/* Hover indicator */}
+          {/* Hover indicator with arrow animation */}
           <motion.div
             className="absolute bottom-6 right-6 flex items-center gap-2 text-primary text-sm font-medium"
             initial={{ opacity: 0, x: -10 }}
             animate={{ opacity: isHovered ? 1 : 0, x: isHovered ? 0 : -10 }}
           >
-            <span>Zobacz więcej</span>
+            <span className="animate-electric">Zobacz więcej</span>
             <motion.span
               animate={{ x: isHovered ? [0, 5, 0] : 0 }}
               transition={{ repeat: Infinity, duration: 1 }}
