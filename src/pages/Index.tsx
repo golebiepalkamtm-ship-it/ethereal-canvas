@@ -3,6 +3,7 @@ import { ParticleBackground } from "@/components/gallery/ParticleBackground";
 import { HeroSection } from "@/components/gallery/HeroSection";
 import { Carousel3D } from "@/components/gallery/Carousel3D";
 import { GalleryGrid } from "@/components/gallery/GalleryGrid";
+import { AchievementsTimeline } from "@/components/gallery/AchievementsTimeline";
 import { PigeonModal } from "@/components/gallery/PigeonModal";
 import { pigeons, type Pigeon } from "@/data/pigeons";
 
@@ -30,6 +31,8 @@ const Index = () => {
       <Carousel3D />
       
       <GalleryGrid onSelectPigeon={setSelectedPigeon} />
+      
+      <AchievementsTimeline />
       
       <PigeonModal
         pigeon={selectedPigeon}
