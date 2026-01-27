@@ -162,7 +162,7 @@ export const AchievementsTimeline = () => {
         viewport={{ once: true }}
         className="text-center text-muted-foreground text-sm mt-12 relative z-10"
       >
-        Dane z oficjalnej historii hodowli Pałka MTM • 2018–2024
+        Dane z oficjalnej historii hodowli Pałka MTM • 2001–2024
       </motion.p>
     </section>
   );
