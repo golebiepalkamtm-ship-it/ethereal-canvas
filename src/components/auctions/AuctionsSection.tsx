@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect } from "react";
 import { gsap } from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
-import { motion } from "framer-motion";
+ import { motion, AnimatePresence } from "framer-motion";
 import { Filter, SortAsc, Clock, Flame, DollarSign, Grid3X3, LayoutList } from "lucide-react";
 import { auctionsData, auctionInfo, type Auction } from "@/data/auctions";
 import { AuctionCard } from "./AuctionCard";
@@ -185,7 +185,8 @@ export const AuctionsSection = () => {
         </motion.div>
 
         {/* Auctions grid */}
-        <div
+         <motion.div
+           layout
           className={`
             grid gap-6
             ${viewMode === "grid" 
@@ -194,15 +195,17 @@ export const AuctionsSection = () => {
             }
           `}
         >
-          {sortedAuctions.map((auction, index) => (
-            <AuctionCard
-              key={auction.id}
-              auction={auction}
-              index={index}
-              onSelect={setSelectedAuction}
-            />
-          ))}
-        </div>
+           <AnimatePresence mode="popLayout">
+             {sortedAuctions.map((auction, index) => (
+               <AuctionCard
+                 key={auction.id}
+                 auction={auction}
+                 index={index}
+                 onSelect={setSelectedAuction}
+               />
+             ))}
+           </AnimatePresence>
+         </motion.div>
 
         {/* Load more button (static for now) */}
         <div className="flex justify-center mt-12">
