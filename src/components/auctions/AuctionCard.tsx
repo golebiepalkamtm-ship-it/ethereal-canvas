@@ -1,10 +1,9 @@
-import { useState } from "react";
-import { motion } from "framer-motion";
-import { Gavel, Heart, Eye, Trophy, Info } from "lucide-react";
+import { useState, useRef } from "react";
+import { motion, useMotionValue, useSpring, useTransform } from "framer-motion";
+import { Gavel, Heart, Trophy, Clock, Sparkles } from "lucide-react";
 import { type Auction } from "@/data/auctions";
 import { AuctionTimer } from "./AuctionTimer";
 import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
 
 interface AuctionCardProps {
   auction: Auction;
@@ -13,8 +12,38 @@ interface AuctionCardProps {
 }
 
 export const AuctionCard = ({ auction, index, onSelect }: AuctionCardProps) => {
+  const cardRef = useRef<HTMLDivElement>(null);
   const [isHovered, setIsHovered] = useState(false);
   const [isLiked, setIsLiked] = useState(false);
+  const [imageLoaded, setImageLoaded] = useState(false);
+
+  // Physics-based mouse tracking
+  const mouseX = useMotionValue(0);
+  const mouseY = useMotionValue(0);
+
+  // Spring physics for smooth follow
+  const springConfig = { damping: 25, stiffness: 300 };
+  const rotateX = useSpring(useTransform(mouseY, [-0.5, 0.5], [8, -8]), springConfig);
+  const rotateY = useSpring(useTransform(mouseX, [-0.5, 0.5], [-8, 8]), springConfig);
+  
+  // Lighting effect position
+  const lightX = useSpring(useTransform(mouseX, [-0.5, 0.5], [0, 100]), springConfig);
+  const lightY = useSpring(useTransform(mouseY, [-0.5, 0.5], [0, 100]), springConfig);
+
+  const handleMouseMove = (e: React.MouseEvent<HTMLDivElement>) => {
+    if (!cardRef.current) return;
+    const rect = cardRef.current.getBoundingClientRect();
+    const x = (e.clientX - rect.left) / rect.width - 0.5;
+    const y = (e.clientY - rect.top) / rect.height - 0.5;
+    mouseX.set(x);
+    mouseY.set(y);
+  };
+
+  const handleMouseLeave = () => {
+    mouseX.set(0);
+    mouseY.set(0);
+    setIsHovered(false);
+  };
 
   const formatPrice = (price: number) => {
     return new Intl.NumberFormat("pl-PL", {
@@ -26,157 +55,260 @@ export const AuctionCard = ({ auction, index, onSelect }: AuctionCardProps) => {
 
   const timeUntilEnd = auction.endTime.getTime() - new Date().getTime();
   const isEndingSoon = timeUntilEnd < 60 * 60 * 1000; // less than 1 hour
+  const isHot = auction.bids > 20;
 
   return (
     <motion.div
+      ref={cardRef}
       initial={{ opacity: 0, y: 50, rotateX: 15 }}
       whileInView={{ opacity: 1, y: 0, rotateX: 0 }}
       viewport={{ once: true, margin: "-50px" }}
-      transition={{ 
-        duration: 0.6, 
+      transition={{
+        duration: 0.8,
         delay: index * 0.1,
-        ease: [0.23, 1, 0.32, 1]
+        ease: [0.23, 1, 0.32, 1],
       }}
+      style={{
+        rotateX: isHovered ? rotateX : 0,
+        rotateY: isHovered ? rotateY : 0,
+        transformStyle: "preserve-3d",
+      }}
+      onMouseMove={handleMouseMove}
       onMouseEnter={() => setIsHovered(true)}
-      onMouseLeave={() => setIsHovered(false)}
-      className="group relative perspective-1000"
+      onMouseLeave={handleMouseLeave}
+      onClick={() => onSelect(auction)}
+      className="group relative cursor-pointer"
+      whileHover={{ z: 50 }}
     >
-      <div 
-        className={`
-          relative glass-card rounded-2xl overflow-hidden border transition-all duration-500
-          ${isEndingSoon ? "border-destructive/50" : "border-border/30"}
-          ${isHovered ? "border-primary/50 shadow-glow-sm" : ""}
-        `}
+      {/* Main card container */}
+      <motion.div
+        className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-card/80 via-card to-card/90 backdrop-blur-xl"
+        animate={{
+          boxShadow: isHovered
+            ? "0 25px 50px -12px rgba(0, 0, 0, 0.6), 0 0 0 1px rgba(212, 175, 55, 0.2), inset 0 1px 0 0 rgba(255, 255, 255, 0.1)"
+            : "0 10px 40px -15px rgba(0, 0, 0, 0.4), 0 0 0 1px rgba(255, 255, 255, 0.05)",
+        }}
+        transition={{ duration: 0.4 }}
       >
-        {/* Ending soon badge */}
-        {isEndingSoon && (
-          <div className="absolute top-3 left-3 z-20">
-            <Badge variant="destructive" className="animate-pulse font-semibold">
-              Kończy się!
-            </Badge>
-          </div>
-        )}
+        {/* Dynamic lighting overlay */}
+        <motion.div
+          className="pointer-events-none absolute inset-0 z-10 opacity-0 transition-opacity duration-300 group-hover:opacity-100"
+          style={{
+            background: useTransform(
+              [lightX, lightY],
+              ([x, y]) =>
+                `radial-gradient(600px circle at ${x}% ${y}%, rgba(212, 175, 55, 0.15), transparent 40%)`
+            ),
+          }}
+        />
 
-        {/* Like button */}
-        <button
+        {/* Status indicators - floating pills */}
+        <div className="absolute left-4 top-4 z-20 flex flex-col gap-2">
+          {isEndingSoon && (
+            <motion.div
+              initial={{ opacity: 0, x: -20 }}
+              animate={{ opacity: 1, x: 0 }}
+              className="flex items-center gap-1.5 rounded-full bg-destructive/90 px-3 py-1.5 text-xs font-semibold text-destructive-foreground backdrop-blur-sm"
+            >
+              <Clock className="h-3 w-3 animate-pulse" />
+              KOŃCZY SIĘ
+            </motion.div>
+          )}
+          {isHot && (
+            <motion.div
+              initial={{ opacity: 0, x: -20 }}
+              animate={{ opacity: 1, x: 0 }}
+              transition={{ delay: 0.1 }}
+              className="flex items-center gap-1.5 rounded-full bg-gradient-to-r from-orange-500 to-amber-500 px-3 py-1.5 text-xs font-semibold text-white backdrop-blur-sm"
+            >
+              <Sparkles className="h-3 w-3" />
+              HOT
+            </motion.div>
+          )}
+        </div>
+
+        {/* Like button - floating action */}
+        <motion.button
           onClick={(e) => {
             e.stopPropagation();
             setIsLiked(!isLiked);
           }}
-          className="absolute top-3 right-3 z-20 w-9 h-9 rounded-full bg-background/80 backdrop-blur-sm flex items-center justify-center transition-all hover:scale-110"
+          className="absolute right-4 top-4 z-20 flex h-10 w-10 items-center justify-center rounded-full bg-background/20 backdrop-blur-md transition-colors hover:bg-background/40"
+          whileHover={{ scale: 1.1 }}
+          whileTap={{ scale: 0.9 }}
         >
-          <Heart
-            className={`w-4 h-4 transition-colors ${isLiked ? "fill-destructive text-destructive" : "text-muted-foreground"}`}
-          />
-        </button>
-
-        {/* Image container */}
-        <div className="relative aspect-square overflow-hidden">
-          <motion.img
-            src={auction.image}
-            alt={auction.name}
-            className="w-full h-full object-cover"
-            animate={{ scale: isHovered ? 1.1 : 1 }}
-            transition={{ duration: 0.6, ease: "easeOut" }}
-          />
-          
-          {/* Overlay gradient */}
-          <div className="absolute inset-0 bg-gradient-to-t from-background via-background/20 to-transparent opacity-60" />
-          
-          {/* Quick info overlay on hover */}
           <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: isHovered ? 1 : 0, y: isHovered ? 0 : 20 }}
-            className="absolute bottom-0 left-0 right-0 p-4 flex gap-2"
+            animate={isLiked ? { scale: [1, 1.3, 1] } : {}}
+            transition={{ duration: 0.3 }}
           >
-            <Button
-              size="sm"
-              variant="secondary"
-              className="flex-1 bg-background/90 backdrop-blur-sm hover:bg-primary hover:text-primary-foreground"
-              onClick={() => onSelect(auction)}
-            >
-              <Eye className="w-4 h-4 mr-1" />
-              Szczegóły
-            </Button>
+            <Heart
+              className={`h-5 w-5 transition-all duration-300 ${
+                isLiked
+                  ? "fill-red-500 text-red-500"
+                  : "text-white/70 hover:text-white"
+              }`}
+            />
+          </motion.div>
+        </motion.button>
+
+        {/* Hero image section */}
+        <div className="relative aspect-[4/3] overflow-hidden">
+          {/* Image skeleton loader */}
+          {!imageLoaded && (
+            <div className="absolute inset-0 animate-pulse bg-muted" />
+          )}
+
+          {/* Main image with parallax effect */}
+          <motion.div
+            className="absolute inset-0"
+            style={{
+              x: useTransform(mouseX, [-0.5, 0.5], [-10, 10]),
+              y: useTransform(mouseY, [-0.5, 0.5], [-10, 10]),
+            }}
+          >
+            <motion.img
+              src={auction.image}
+              alt={auction.name}
+              className="h-full w-full object-cover"
+              animate={{ scale: isHovered ? 1.08 : 1 }}
+              transition={{ duration: 0.6, ease: [0.23, 1, 0.32, 1] }}
+              onLoad={() => setImageLoaded(true)}
+            />
           </motion.div>
 
-          {/* Achievements badge */}
+          {/* Cinematic gradient overlays */}
+          <div className="absolute inset-0 bg-gradient-to-t from-card via-card/20 to-transparent" />
+          <div className="absolute inset-0 bg-gradient-to-br from-primary/10 via-transparent to-transparent opacity-0 transition-opacity duration-500 group-hover:opacity-100" />
+
+          {/* Achievements badge - bottom corner */}
           {auction.achievements && auction.achievements.length > 0 && (
-            <div className="absolute bottom-4 right-4">
-              <div className="flex items-center gap-1 px-2 py-1 rounded-full bg-primary/90 text-primary-foreground text-xs font-medium">
-                <Trophy className="w-3 h-3" />
-                {auction.achievements.length}
+            <motion.div
+              className="absolute bottom-4 right-4 z-10"
+              initial={{ opacity: 0, scale: 0.8 }}
+              animate={{ opacity: 1, scale: 1 }}
+              transition={{ delay: 0.2 }}
+            >
+              <div className="flex items-center gap-1.5 rounded-full bg-primary/90 px-3 py-1.5 text-xs font-semibold text-primary-foreground shadow-lg backdrop-blur-sm">
+                <Trophy className="h-3.5 w-3.5" />
+                <span>{auction.achievements.length} osiągnięć</span>
               </div>
-            </div>
+            </motion.div>
           )}
         </div>
 
-        {/* Content */}
-        <div className="p-4 space-y-3">
-          {/* Ring number & name */}
-          <div>
-            <p className="text-xs text-muted-foreground font-mono mb-0.5">
+        {/* Content section with layered design */}
+        <div className="relative space-y-4 p-5">
+          {/* Ring number - monospace accent */}
+          <div className="flex items-center gap-2">
+            <span className="font-mono text-[10px] tracking-wider text-primary/70">
               {auction.ringNumber}
-            </p>
-            <h3 className="font-display text-lg font-semibold text-foreground group-hover:text-primary transition-colors">
+            </span>
+            <div className="h-px flex-1 bg-gradient-to-r from-border to-transparent" />
+          </div>
+
+          {/* Name & specs */}
+          <div className="space-y-2">
+            <motion.h3
+              className="font-display text-xl font-bold tracking-tight text-foreground"
+              animate={{ color: isHovered ? "hsl(var(--primary))" : "hsl(var(--foreground))" }}
+              transition={{ duration: 0.3 }}
+            >
               {auction.name}
-            </h3>
+            </motion.h3>
+
+            <div className="flex flex-wrap items-center gap-2">
+              <Badge
+                variant="outline"
+                className="border-primary/30 bg-primary/5 text-[10px] font-medium"
+              >
+                {auction.sex === "samiec" ? "♂ Samiec" : "♀ Samica"}
+              </Badge>
+              <Badge
+                variant="outline"
+                className="border-muted-foreground/30 text-[10px] font-medium"
+              >
+                {auction.year}
+              </Badge>
+              <Badge
+                variant="outline"
+                className="border-muted-foreground/30 text-[10px] font-medium"
+              >
+                {auction.color}
+              </Badge>
+            </div>
           </div>
 
-          {/* Specs row */}
-          <div className="flex flex-wrap gap-1.5">
-            <Badge variant="outline" className="text-[10px] px-2 py-0.5">
-              {auction.sex === "samiec" ? "♂ Samiec" : "♀ Samica"}
-            </Badge>
-            <Badge variant="outline" className="text-[10px] px-2 py-0.5">
-              {auction.year}
-            </Badge>
-            <Badge variant="outline" className="text-[10px] px-2 py-0.5">
-              {auction.color}
-            </Badge>
+          {/* Divider with timer */}
+          <div className="flex items-center gap-3 rounded-xl bg-muted/30 p-3">
+            <div className="flex-1">
+              <p className="mb-1 text-[10px] uppercase tracking-widest text-muted-foreground">
+                Koniec za
+              </p>
+              <AuctionTimer endTime={auction.endTime} compact />
+            </div>
+            <div className="h-8 w-px bg-border" />
+            <div className="text-right">
+              <p className="text-[10px] uppercase tracking-widest text-muted-foreground">
+                Oferty
+              </p>
+              <p className="font-mono text-sm font-semibold text-foreground">
+                {auction.bids}
+              </p>
+            </div>
           </div>
 
-          {/* Timer */}
-          <div className="pt-2 border-t border-border/30">
-            <p className="text-[10px] text-muted-foreground uppercase tracking-wider mb-1">
-              Koniec aukcji
-            </p>
-            <AuctionTimer endTime={auction.endTime} />
-          </div>
-
-          {/* Price section */}
-          <div className="pt-3 border-t border-border/30 flex items-end justify-between">
+          {/* Price section - hero element */}
+          <div className="flex items-end justify-between pt-2">
             <div>
-              <p className="text-[10px] text-muted-foreground uppercase tracking-wider">
+              <p className="text-[10px] uppercase tracking-widest text-muted-foreground">
                 Aktualna cena
               </p>
-              <p className="text-2xl font-bold text-primary">
+              <motion.p
+                className="bg-gradient-to-r from-primary via-amber-400 to-primary bg-clip-text font-display text-3xl font-bold text-transparent"
+                animate={{
+                  backgroundPosition: isHovered ? "100% 50%" : "0% 50%",
+                }}
+                transition={{ duration: 2, repeat: Infinity, repeatType: "reverse" }}
+                style={{ backgroundSize: "200% 100%" }}
+              >
                 {formatPrice(auction.currentPrice)}
-              </p>
+              </motion.p>
             </div>
-            <div className="text-right">
-              <p className="text-[10px] text-muted-foreground">
-                {auction.bids} ofert
-              </p>
-              <p className="text-xs text-muted-foreground">
-                Start: {formatPrice(auction.startPrice)}
-              </p>
-            </div>
+            <p className="text-xs text-muted-foreground">
+              od {formatPrice(auction.startPrice)}
+            </p>
           </div>
 
-          {/* Bid button */}
-          <Button 
-            className="w-full gap-2 neon-border bg-primary/10 hover:bg-primary text-primary hover:text-primary-foreground transition-all"
-            onClick={() => onSelect(auction)}
+          {/* CTA Button with glow */}
+          <motion.button
+            className="relative w-full overflow-hidden rounded-xl bg-gradient-to-r from-primary to-amber-500 py-3.5 font-semibold text-primary-foreground shadow-lg"
+            whileHover={{ scale: 1.02 }}
+            whileTap={{ scale: 0.98 }}
           >
-            <Gavel className="w-4 h-4" />
-            Licytuj teraz
-          </Button>
+            {/* Animated shine effect */}
+            <motion.div
+              className="absolute inset-0 bg-gradient-to-r from-transparent via-white/30 to-transparent"
+              initial={{ x: "-100%" }}
+              animate={{ x: isHovered ? "100%" : "-100%" }}
+              transition={{ duration: 0.6, ease: "easeInOut" }}
+            />
+            <span className="relative flex items-center justify-center gap-2">
+              <Gavel className="h-4 w-4" />
+              Licytuj teraz
+            </span>
+          </motion.button>
         </div>
+      </motion.div>
 
-        {/* Shimmer effect on hover */}
-        <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-500 shimmer pointer-events-none" />
-      </div>
+      {/* Ambient glow effect behind card */}
+      <motion.div
+        className="pointer-events-none absolute -inset-4 -z-10 rounded-3xl opacity-0 blur-2xl transition-opacity duration-500 group-hover:opacity-100"
+        style={{
+          background: isEndingSoon
+            ? "radial-gradient(circle, rgba(239, 68, 68, 0.15), transparent 70%)"
+            : "radial-gradient(circle, rgba(212, 175, 55, 0.2), transparent 70%)",
+        }}
+      />
     </motion.div>
   );
 };
