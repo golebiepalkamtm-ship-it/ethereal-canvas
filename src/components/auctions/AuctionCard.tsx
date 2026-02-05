@@ -1,6 +1,6 @@
 import { useState, useRef } from "react";
 import { motion, useMotionValue, useSpring, useTransform } from "framer-motion";
-import { Gavel, Heart, Trophy, Clock, Sparkles } from "lucide-react";
+ import { Gavel, Heart, Trophy, Clock, Sparkles, Eye } from "lucide-react";
 import { type Auction } from "@/data/auctions";
 import { AuctionTimer } from "./AuctionTimer";
 import { Badge } from "@/components/ui/badge";
@@ -16,6 +16,7 @@ export const AuctionCard = ({ auction, index, onSelect }: AuctionCardProps) => {
   const [isHovered, setIsHovered] = useState(false);
   const [isLiked, setIsLiked] = useState(false);
   const [imageLoaded, setImageLoaded] = useState(false);
+   const [viewCount] = useState(() => Math.floor(Math.random() * 50) + 10);
 
   // Physics-based mouse tracking
   const mouseX = useMotionValue(0);
@@ -57,17 +58,35 @@ export const AuctionCard = ({ auction, index, onSelect }: AuctionCardProps) => {
   const isEndingSoon = timeUntilEnd < 60 * 60 * 1000; // less than 1 hour
   const isHot = auction.bids > 20;
 
+   // Staggered cascade animation variants
+   const cardVariants = {
+     hidden: {
+       opacity: 0,
+       y: 80,
+       rotateX: 25,
+       scale: 0.9,
+     },
+     visible: {
+       opacity: 1,
+       y: 0,
+       rotateX: 0,
+       scale: 1,
+       transition: {
+         type: "spring",
+         stiffness: 100,
+         damping: 15,
+         delay: index * 0.12,
+       },
+     },
+   };
+ 
   return (
     <motion.div
       ref={cardRef}
-      initial={{ opacity: 0, y: 50, rotateX: 15 }}
-      whileInView={{ opacity: 1, y: 0, rotateX: 0 }}
+       variants={cardVariants}
+       initial="hidden"
+       whileInView="visible"
       viewport={{ once: true, margin: "-50px" }}
-      transition={{
-        duration: 0.8,
-        delay: index * 0.1,
-        ease: [0.23, 1, 0.32, 1],
-      }}
       style={{
         rotateX: isHovered ? rotateX : 0,
         rotateY: isHovered ? rotateY : 0,
@@ -193,6 +212,21 @@ export const AuctionCard = ({ auction, index, onSelect }: AuctionCardProps) => {
                 <span>{auction.achievements.length} osiągnięć</span>
               </div>
             </motion.div>
+         )}
+ 
+         {/* View count badge */}
+         {viewCount > 0 && (
+           <motion.div
+             className="absolute bottom-4 left-4 z-10"
+             initial={{ opacity: 0, x: -10 }}
+             animate={{ opacity: 1, x: 0 }}
+             transition={{ delay: 0.3 }}
+           >
+             <div className="flex items-center gap-1.5 rounded-full bg-background/60 px-2.5 py-1 text-xs text-foreground/80 backdrop-blur-sm">
+               <Eye className="h-3 w-3" />
+               <span>{viewCount}</span>
+             </div>
+           </motion.div>
           )}
         </div>
 
@@ -284,6 +318,11 @@ export const AuctionCard = ({ auction, index, onSelect }: AuctionCardProps) => {
             className="relative w-full overflow-hidden rounded-xl bg-gradient-to-r from-primary to-amber-500 py-3.5 font-semibold text-primary-foreground shadow-lg"
             whileHover={{ scale: 1.02 }}
             whileTap={{ scale: 0.98 }}
+             style={{
+               boxShadow: isHovered
+                 ? "0 10px 40px -10px rgba(212, 175, 55, 0.5)"
+                 : "0 5px 20px -5px rgba(212, 175, 55, 0.3)",
+             }}
           >
             {/* Animated shine effect */}
             <motion.div
